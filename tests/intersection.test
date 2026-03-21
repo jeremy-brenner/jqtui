@@ -1,0 +1,11 @@
+intersection(["a","b","c"])
+["a","b","c"]
+["a","b","c"]
+
+intersection(["b","c","d"])
+["a","b","c"]
+["b","c"]
+
+intersection(["d","e","f"])
+["a","b","c"]
+[]

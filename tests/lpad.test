@@ -1,0 +1,15 @@
+# pads up to w
+lpad(4)
+"x"
+"   x"
+
+# does not modify if already at w
+lpad(4)
+"xxxx"
+"xxxx"
+
+# does not modify if < w
+lpad(2)
+"xxxx"
+"xxxx"
+

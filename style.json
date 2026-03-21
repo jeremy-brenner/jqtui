@@ -1,0 +1,69 @@
+{
+  "double": {
+    "topleft": "\u2554",
+    "topright": "\u2557",
+    "topmiddle": "\u2550",
+    "bottomleft": "\u255A",
+    "bottomright": "\u255D",
+    "bottommiddle": "\u2550",
+    "sidecol": "\u2551",
+    "titleholestart": "\u2561",
+    "titleholeend": "\u255E",
+    "selected": "\u25CF"
+  },
+  "thick": {
+    "topleft": "\u250F",
+    "topright": "\u2513",
+    "topmiddle": "\u2501",
+    "bottomleft": "\u2517",
+    "bottomright": "\u251B",
+    "bottommiddle": "\u2501",
+    "sidecol": "\u2503",
+    "titleholestart": "\u252B",
+    "titleholeend": "\u2523",
+    "selected": "\u25CF"
+  },
+  "thin": {
+    "topleft": "\u250C",
+    "topright": "\u2510",
+    "topmiddle": "\u2508",
+    "bottomleft": "\u2514",
+    "bottomright": "\u2518",
+    "bottommiddle": "\u2508",
+    "sidecol": "\u2502",
+    "titleholestart": "\u25C0",
+    "titleholeend": "\u25B6",
+    "selected": "\u25C8"
+  },
+  "thinrounded": {
+    "topleft": "\u256D",
+    "topright": "\u256E",
+    "topmiddle": "\u2508",
+    "bottomleft": "\u2570",
+    "bottomright": "\u256F",
+    "bottommiddle": "\u2508",
+    "sidecol": "\u2502",
+    "selected": "\u25C9"
+  },
+  "thinroundednosides": {
+    "topleft": "\u256D",
+    "topright": "\u256E",
+    "topmiddle": "\u2508",
+    "bottomleft": "\u2570",
+    "bottomright": "\u256F",
+    "bottommiddle": "\u2508",
+    "selected": "\u25C9"
+  },
+  "basic": {
+    "topleft": "+",
+    "topright": "+",
+    "bottomleft": "+",
+    "bottomright": "+",
+    "topmiddle": "-",
+    "bottommiddle": "-",
+    "sidecol": "|",
+    "titleholestart": ":",
+    "titleholeend": ":",
+    "selected": "*"
+  }
+}
