@@ -1,13 +1,13 @@
 # returns the changed coordinates of two buffers
 def compareBuffers:
-  .nextScreen=(.next|screen) |
+  .nextBuffer=(.next|buffer) |
   if .prev != null then
-    .prevScreen=(.prev|screen) |
-    . as { $nextScreen, $prevScreen } |
-   $nextScreen | [paths(type == "string")] |
-     map( select(($nextScreen[.[0]][.[1]]) != ($prevScreen[.[0]][.[1]])) | { l: .[0], c: .[1], char: $nextScreen[.[0]][.[1]] } ) | printDiff
+    .prevBuffer=(.prev|buffer) |
+    . as { $nextBuffer, $prevBuffer } |
+    $nextBuffer | [paths(type == "string")] |
+      map( select(($nextBuffer[.[0]][.[1]]) != ($prevBuffer[.[0]][.[1]])) | { l: .[0], c: .[1], char: $nextBuffer[.[0]][.[1]] } ) | printDiff
   else
-    .nextScreen | print
+    .next | buffer | print
   end;
 
 
