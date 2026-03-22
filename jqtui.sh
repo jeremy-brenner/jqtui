@@ -4,6 +4,8 @@ source terminal.sh
 source box.sh
 source style.sh
 
+timeout=0.05
+
 ./build.sh
 sleep 0.5
 
@@ -15,7 +17,7 @@ style="basic"
 prev='null'
 
 coproc backendProc {
-  jq --unbuffered -r --slurpfile styles style.json -L ./out 'include "jqtui"; compareBuffers'
+  jq --unbuffered -r --slurpfile styles style.json -L ./out 'include "jqtui"; compareBuffers | print'
 }
 
 exec 10<&"${backendProc[0]}"
@@ -25,29 +27,24 @@ backendReadFd=10
 backendWriteFd=11
 
 log() {
-  echo "${1}" >> frontend.log
+  echo "${1}" >> jqtui.log
 }
 
 package() {
-  jq -nc --argjson i "${i}" --argjson w "${w}" --argjson h "${h}" --arg style "${style}" --arg contents "${contents}" '{ $i, $w, $h, $style, $contents }'
-  ((i++))
+  jq -nc --argjson i "${i}" --argjson w "${w}" --argjson h "${h}" --arg style "${style}" --argjson screen "${screen}" '{ $i, $w, $h, $style, $screen }'
 }
 
 send() {
-  echo "s1" >> log.txt
+  log "Calling send"
   local _next="$(package)"
-    echo "s2" >> log.txt
-  jq -nc --argjson prev "${prev}" --argjson next "${_next}" '{ $prev, $next }' > debug.json
+  ((i++))
   jq -nc --argjson prev "${prev}" --argjson next "${_next}" '{ $prev, $next }' >&${backendWriteFd}
-    echo "s3" >> log.txt
-
   prev="${_next}"
 }
 
 sendKey() {
   _key="${1}"
   if [[ -n "${_key}" ]]; then
-    echo "" >/dev/null
     contents="$(jq --arg k "${_key}" '. + [$k]' <<<"${contents}")"
     send
   fi
@@ -55,7 +52,7 @@ sendKey() {
 
 readKey() {
   escape_char=$(printf "\\u1b")
-  IFS= read -t 0.01 -rsn1 -d '' mode < /dev/tty
+  IFS= read -t $timeout -rsn1 -d '' mode < /dev/tty
   if [[ $? -gt 128 ]]; then
     mode='TIMEOUT'
   fi
@@ -75,14 +72,18 @@ readKey() {
 }
 
 readFromBackend() {
+  log "reading from backend"
   backendReadFd="${1}"
-  read -t 0.01 -d '' -r -u "${backendReadFd}" results
+  read -t $timeout -d '' -r -u "${backendReadFd}" results
   if [[ -n "${results}" ]]; then
     printf -- '%s' "${results}"
+    log "got results ========="
+    log "${results}"
+    log "end results ========="
   fi
 }
 
-log "startup"
+log "jqtui startup"
 
 style::thinrounded
 
@@ -110,18 +111,20 @@ checkTermSize() {
 }
 
 renderPage() {
-  box::topRow "${w}" "Pretty Cool"
+  log "Calling render"
+  jq -R '[.]' <<< "$( box::topRow "${w}" "$(date)" )"
   for x in $(seq 0 $(( itemCount - 1 )) ); do
-    box::optionRow "${w}" "${itemNames[x]}" "false" "false"
+    jq -R '[.]' <<< "$( box::optionRow "${w}" "${itemNames[x]}" "false" "false" )"
   done
   for x in $(seq $(( itemCount - 1 )) $(( h - 4 )) ); do
-    box::emptyRow "${w}"
+    jq -R '[.]' <<< "$( box::emptyRow "${w}" )"
   done
-  box::bottomRow "${w}"
+  jq -R '[.]' <<< "$( box::bottomRow "${w}" )"
 }
 
 while :; do
-  contents="$(renderPage)"
+  screen="$(jq -s 'add' < <(renderPage) )"
+  echo "${screen}" > thing.json
   send
   _key=$(readKey)
   case $_key in

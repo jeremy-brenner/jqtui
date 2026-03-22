@@ -1,3 +1,3 @@
-# draws a screen of a given width height
+# splits a screen up into a buffer object
 def buffer:
-  . as { $w, $h, $contents } | $contents | split("\n") | map(./"") ;
+  . as { $w, $h, $screen } | $screen | map(./"") ;

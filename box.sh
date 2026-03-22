@@ -10,7 +10,6 @@ box::topRow() {
   printf -- "${STYLE_TITLEHOLESTART}${_title}${STYLE_TITLEHOLEEND}"
   printf -- "${STYLE_TOPMIDDLE}%.0s" $(seq 1 $((_middleBits/2)));
   printf -- "${STYLE_TOPRIGHT}"
-  printf -- "\n"
 }
 
 box::optionRow() {
@@ -26,7 +25,6 @@ box::optionRow() {
     printf -- "%*s" $(( _w - 4 )) "${_option}"
   fi
   printf -- " ${STYLE_SIDECOL}"
-  printf -- "\n"
 }
 
 
@@ -35,7 +33,6 @@ box::emptyRow() {
   printf -- "${STYLE_SIDECOL}"
   printf -- "%*s" $(( _w - 2 ))
   printf -- "${STYLE_SIDECOL}"
-  printf -- "\n"
 }
 
 box::bottomRow() {
@@ -43,7 +40,6 @@ box::bottomRow() {
   printf -- "${STYLE_BOTTOMLEFT}"
   printf -- "${STYLE_BOTTOMMIDDLE}%.0s" $(seq 1 $(( _w - 2 )));
   printf -- "${STYLE_BOTTOMRIGHT}"
-  printf -- "\n"
 }
 
 
