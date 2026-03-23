@@ -65,7 +65,6 @@ terminal::white() {
   tput setaf 7
 }
 
-
 terminal::resetAll() {
   tput sgr0
 }

@@ -1,3 +1,4 @@
+source terminal.sh
 
 
 box::topRow() {
@@ -7,7 +8,7 @@ box::topRow() {
   local _middleBits=$(( _w - 4 - _title_len ))
   printf -- "${STYLE_TOPLEFT}"
   printf -- "${STYLE_TOPMIDDLE}%.0s" $(seq 1 $((_middleBits/2 + _middleBits%2)));
-  printf -- "${STYLE_TITLEHOLESTART}${_title}${STYLE_TITLEHOLEEND}"
+  printf -- "${STYLE_TITLEHOLESTART}$(terminal::green)${_title}$(terminal::resetAll)${STYLE_TITLEHOLEEND}"
   printf -- "${STYLE_TOPMIDDLE}%.0s" $(seq 1 $((_middleBits/2)));
   printf -- "${STYLE_TOPRIGHT}"
 }
@@ -15,15 +16,19 @@ box::topRow() {
 box::optionRow() {
   local _w="${1}"
   local _option="${2}"
-  local _highlight"${3}"
+  local _highlight="${3}"
   local _selected="${4}"
   local _title_len="${#_option}"
   printf -- "${STYLE_SIDECOL} "
+  if [[ "${_highlight}" == "true" ]]; then
+     printf -- "$(terminal::invert)"
+  fi
   if [[ "${_selected}" == "true" ]]; then
     printf -- "${STYLE_SELECTED}%*s" $(( _w - 5 )) "${_option}"
   else
     printf -- "%*s" $(( _w - 4 )) "${_option}"
   fi
+  printf -- "$(terminal::resetAll)"
   printf -- " ${STYLE_SIDECOL}"
 }
 

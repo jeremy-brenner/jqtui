@@ -4,7 +4,8 @@ source terminal.sh
 source box.sh
 source style.sh
 
-timeout=0.05
+readKeyTimeout=0.01
+readFromBackendTimeout=0.03
 
 ./build.sh
 sleep 0.5
@@ -42,17 +43,9 @@ send() {
   prev="${_next}"
 }
 
-sendKey() {
-  _key="${1}"
-  if [[ -n "${_key}" ]]; then
-    contents="$(jq --arg k "${_key}" '. + [$k]' <<<"${contents}")"
-    send
-  fi
-}
-
 readKey() {
   escape_char=$(printf "\\u1b")
-  IFS= read -t $timeout -rsn1 -d '' mode < /dev/tty
+  IFS= read -t $readKeyTimeout -rsn1 -d '' mode < /dev/tty
   if [[ $? -gt 128 ]]; then
     mode='TIMEOUT'
   fi
@@ -74,7 +67,7 @@ readKey() {
 readFromBackend() {
   log "reading from backend"
   backendReadFd="${1}"
-  read -t $timeout -d '' -r -u "${backendReadFd}" results
+  read -t $readFromBackendTimeout -d '' -r -u "${backendReadFd}" results
   if [[ -n "${results}" ]]; then
     printf -- '%s' "${results}"
     log "got results ========="
@@ -87,7 +80,7 @@ log "jqtui startup"
 
 style::thinrounded
 
-itemNames=(
+firstMenuItemNames=(
   "First Item"
   "Second Item"
   "Third Item"
@@ -95,7 +88,7 @@ itemNames=(
   "Fifth Item"
 )
 
-itemCount=${#itemNames[@]}
+firstMenuItemCount=${#firstMenuItemNames[@]}
 
 checkTermSize() {
   newW="$(terminal::getWidth)"
@@ -110,28 +103,49 @@ checkTermSize() {
   fi
 }
 
-renderPage() {
+renderFirstMenu() {
   log "Calling render"
   jq -R '[.]' <<< "$( box::topRow "${w}" "$(date)" )"
-  for x in $(seq 0 $(( itemCount - 1 )) ); do
-    jq -R '[.]' <<< "$( box::optionRow "${w}" "${itemNames[x]}" "false" "false" )"
+  for x in $(seq 0 $(( firstMenuItemCount - 1 )) ); do
+    highlight="false"
+    if [[ "${x}" == "${cursor}" ]]; then
+      highlight="true"
+    fi
+    log "x: ${x} cursor: ${cursor} high: ${highlight}"
+    jq -R '[.]' <<< "$( box::optionRow "${w}" "${firstMenuItemNames[x]}" "${highlight}" "false" )"
   done
-  for x in $(seq $(( itemCount - 1 )) $(( h - 4 )) ); do
+  for x in $(seq $(( firstMenuItemCount - 1 )) $(( h - 4 )) ); do
     jq -R '[.]' <<< "$( box::emptyRow "${w}" )"
   done
   jq -R '[.]' <<< "$( box::bottomRow "${w}" )"
 }
 
-while :; do
-  screen="$(jq -s 'add' < <(renderPage) )"
-  echo "${screen}" > thing.json
+doRender() {
+  screen="$(jq -s 'add' < <(renderFirstMenu) )"
   send
+}
+
+cursor=1
+
+handleKey() {
+  _key="${1}"
+  if [[ -n "${_key}" ]]; then
+    if [[ "${_key}" == "UP" ]]; then
+      cursor=$(( (cursor - 1 + firstMenuItemCount) % firstMenuItemCount ))
+    fi
+    if [[ "${_key}" == "DOWN" ]]; then
+      cursor=$(( (cursor + 1) % firstMenuItemCount ))
+    fi
+  fi
+}
+
+while :; do
   _key=$(readKey)
   case $_key in
     'q') break ;;
     'TIMEOUT') checkTermSize ;;
-    *) sendKey "${_key}";;
+    *) handleKey "${_key}";;
   esac
+  doRender
   readFromBackend "${backendReadFd}"
-
 done
