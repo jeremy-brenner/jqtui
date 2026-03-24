@@ -69,6 +69,15 @@ terminal::resetAll() {
   tput sgr0
 }
 
+terminal::raw() {
+  stty raw -echo
+}
+
+terminal::sane() {
+  stty sane
+}
+
+
 terminal::test() {
 echo "
 regular bold underline

@@ -4,8 +4,7 @@ source terminal.sh
 source box.sh
 source style.sh
 
-readKeyTimeout=0.01
-readFromBackendTimeout=0.03
+readFromBackendTimeout=0.02
 
 ./build.sh
 sleep 0.5
@@ -28,7 +27,7 @@ backendReadFd=10
 backendWriteFd=11
 
 log() {
-  echo "${1}" >> jqtui.log
+  echo $(date +%s.%N) "${1}" >> jqtui.log
 }
 
 package() {
@@ -43,26 +42,27 @@ send() {
   prev="${_next}"
 }
 
+
 readKey() {
   escape_char=$(printf "\\u1b")
-  IFS= read -t $readKeyTimeout -rsn1 -d '' mode < /dev/tty
-  if [[ $? -gt 128 ]]; then
-    mode='TIMEOUT'
+  if IFS= read -t0 -s -d '' ; then
+    IFS= read -rsn1 -d '' mode
+    if [[ $mode == $escape_char ]]; then
+      read -rsn2 mode
+    fi
+    case $mode in
+       $'\t') echo "TAB";;
+       $'\n') echo "ENTER";;
+      '[A') echo "UP" ;;
+      '[B') echo "DOWN" ;;
+      '[D') echo "LEFT" ;;
+      '[C') echo "RIGHT" ;;
+      ' ') echo "SPACE";;
+      *) echo $mode ;;
+    esac
   fi
-  if [[ $mode == $escape_char ]]; then
-    read -rsn2 mode < /dev/tty
-  fi
-  case $mode in
-     $'\t') echo "TAB";;
-     $'\n') echo "ENTER";;
-    '[A') echo "UP" ;;
-    '[B') echo "DOWN" ;;
-    '[D') echo "LEFT" ;;
-    '[C') echo "RIGHT" ;;
-    ' ') echo "SPACE";;
-    *) echo $mode ;;
-  esac
 }
+
 
 readFromBackend() {
   log "reading from backend"
@@ -70,9 +70,7 @@ readFromBackend() {
   read -t $readFromBackendTimeout -d '' -r -u "${backendReadFd}" results
   if [[ -n "${results}" ]]; then
     printf -- '%s' "${results}"
-    log "got results ========="
-    log "${results}"
-    log "end results ========="
+    log "got results len: ${#results}"
   fi
 }
 
@@ -105,23 +103,24 @@ checkTermSize() {
 
 renderFirstMenu() {
   log "Calling render"
-  jq -R '[.]' <<< "$( box::topRow "${w}" "$(date)" )"
+   box::topRow "${w}" "$(date)"
   for x in $(seq 0 $(( firstMenuItemCount - 1 )) ); do
     highlight="false"
     if [[ "${x}" == "${cursor}" ]]; then
       highlight="true"
     fi
-    log "x: ${x} cursor: ${cursor} high: ${highlight}"
-    jq -R '[.]' <<< "$( box::optionRow "${w}" "${firstMenuItemNames[x]}" "${highlight}" "false" )"
+     box::optionRow "${w}" "${firstMenuItemNames[x]}" "${highlight}" "false"
   done
   for x in $(seq $(( firstMenuItemCount - 1 )) $(( h - 4 )) ); do
-    jq -R '[.]' <<< "$( box::emptyRow "${w}" )"
+    box::emptyRow "${w}"
   done
-  jq -R '[.]' <<< "$( box::bottomRow "${w}" )"
+  box::bottomRow "${w}"
+  log "Ending render"
 }
 
 doRender() {
-  screen="$(jq -s 'add' < <(renderFirstMenu) )"
+  log "doRender"
+  screen="$(jq -Rn '[inputs]' <(renderFirstMenu))"
   send
 }
 
@@ -139,13 +138,22 @@ handleKey() {
   fi
 }
 
+OLD_STTY_CFG=$(stty -g)
+
+stty raw -echo
+
 while :; do
   _key=$(readKey)
   case $_key in
     'q') break ;;
-    'TIMEOUT') checkTermSize ;;
     *) handleKey "${_key}";;
   esac
   doRender
   readFromBackend "${backendReadFd}"
 done
+
+
+
+trap 'stty "$OLD_STTY_CFG"' EXIT
+
+reset
