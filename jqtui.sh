@@ -35,7 +35,6 @@ package() {
 }
 
 send() {
-  log "Calling send"
   local _next="$(package)"
   ((i++))
   jq -nc --argjson prev "${prev}" --argjson next "${_next}" '{ $prev, $next }' >&${backendWriteFd}
@@ -65,7 +64,6 @@ readKey() {
 
 
 readFromBackend() {
-  log "reading from backend"
   backendReadFd="${1}"
   read -t $readFromBackendTimeout -d '' -r -u "${backendReadFd}" results
   if [[ -n "${results}" ]]; then
@@ -86,7 +84,17 @@ firstMenuItemNames=(
   "Fifth Item"
 )
 
-firstMenuItemCount=${#firstMenuItemNames[@]}
+secondMenuItemNames=(
+  "Red Item"
+  "Green Item"
+  "Yellow Item"
+  "Purple Item"
+  "Blue Item"
+)
+
+menuitemcount=()
+menuitemcount[0]=${#firstMenuItemNames[@]}
+menuitemcount[1]=${#secondMenuItemNames[@]}
 
 checkTermSize() {
   newW="$(terminal::getWidth)"
@@ -101,39 +109,75 @@ checkTermSize() {
   fi
 }
 
+
+cursor=(0 0)
+menu=0
+
 renderFirstMenu() {
-  log "Calling render"
-   box::topRow "${w}" "$(date)"
-  for x in $(seq 0 $(( firstMenuItemCount - 1 )) ); do
+  local _currentMenu="${1}"
+  local _isCurrent="false"
+  if [[ "${_currentMenu}" == "0" ]]; then
+    _isCurrent="true"
+  fi
+
+  box::topRow "${fw}" "$(date)" "${_isCurrent}"
+  for x in $(seq 0 $(( menuitemcount[0] - 1 )) ); do
     highlight="false"
-    if [[ "${x}" == "${cursor}" ]]; then
+    if [[ "${x}" == "${cursor[0]}" ]]; then
       highlight="true"
     fi
-     box::optionRow "${w}" "${firstMenuItemNames[x]}" "${highlight}" "false"
+     box::optionRow "${fw}" "${firstMenuItemNames[x]}" "${highlight}" "false" "${_isCurrent}"
   done
-  for x in $(seq $(( firstMenuItemCount - 1 )) $(( h - 4 )) ); do
-    box::emptyRow "${w}"
+  for x in $(seq $(( menuitemcount[0] - 1 )) $(( h - 4 )) ); do
+    box::emptyRow "${fw}" "${_isCurrent}"
   done
-  box::bottomRow "${w}"
-  log "Ending render"
+  box::bottomRow "${fw}" "${_isCurrent}"
+}
+
+renderSecondMenu() {
+  local _currentMenu="${1}"
+  local _isCurrent="false"
+  if [[ "${_currentMenu}" == "1" ]]; then
+     _isCurrent="true"
+   fi
+
+  box::topRow "${sw}" "$(date)" "${_isCurrent}"
+  for x in $(seq 0 $(( menuitemcount[1] - 1 )) ); do
+    highlight="false"
+    if [[ "${x}" == "${cursor[1]}" ]]; then
+      highlight="true"
+    fi
+     box::optionRow "${sw}" "${secondMenuItemNames[x]}" "${highlight}" "false" "${_isCurrent}"
+  done
+  for x in $(seq $(( menuitemcount[1] - 1 )) $(( h - 4 )) ); do
+    box::emptyRow "${sw}" "${_isCurrent}"
+  done
+  box::bottomRow "${sw}" "${_isCurrent}"
 }
 
 doRender() {
-  log "doRender"
-  screen="$(jq -Rn '[inputs]' <(renderFirstMenu))"
+  fw=$(( w / 3 ))
+  sw=$(( w / 3 * 2 ))
+  screen=$(
+  {
+  jq -Rn '[inputs]' <(renderFirstMenu ${menu})
+  jq -Rn '[inputs]' <(renderSecondMenu ${menu})
+  } | jq -s '.[0] as $first | .[1] as $second | $first | to_entries | map(.value + $second[.key]) '
+  )
   send
 }
-
-cursor=1
 
 handleKey() {
   _key="${1}"
   if [[ -n "${_key}" ]]; then
     if [[ "${_key}" == "UP" ]]; then
-      cursor=$(( (cursor - 1 + firstMenuItemCount) % firstMenuItemCount ))
+      cursor[menu]=$(( (cursor[menu] - 1 + menuitemcount[0]) % menuitemcount[0]))
     fi
     if [[ "${_key}" == "DOWN" ]]; then
-      cursor=$(( (cursor + 1) % firstMenuItemCount ))
+      cursor[menu]=$(( (cursor[menu] + 1) % menuitemcount[0] ))
+    fi
+    if [[ "${_key}" == "TAB" ]]; then
+      menu=$(( (menu + 1) % 2 ))
     fi
   fi
 }
@@ -150,10 +194,13 @@ while :; do
   esac
   doRender
   readFromBackend "${backendReadFd}"
+  checkTermSize
 done
 
 
+cleanup() {
+  stty "$OLD_STTY_CFG"
+  reset
+}
 
-trap 'stty "$OLD_STTY_CFG"' EXIT
-
-reset
+trap 'cleanup' EXIT
