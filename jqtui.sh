@@ -158,12 +158,7 @@ renderSecondMenu() {
 doRender() {
   fw=$(( w / 3 ))
   sw=$(( w / 3 * 2 ))
-  screen=$(
-  {
-  jq -Rn '[inputs]' <(renderFirstMenu ${menu})
-  jq -Rn '[inputs]' <(renderSecondMenu ${menu})
-  } | jq -s '.[0] as $first | .[1] as $second | $first | to_entries | map(.value + $second[.key]) '
-  )
+  screen=$(jq -n --rawfile first <(renderFirstMenu ${menu}) --rawfile second <(renderSecondMenu ${menu}) '$first | split("\n") | to_entries | map(.value + ($second | split("\n"))[.key])')
   send
 }
 
